@@ -186,15 +186,21 @@
                 <h3 class="text-xl font-bold mb-4 text-yellow-400">Meldung erfolgreich gespeichert!</h3>
                 <div class="text-5xl mb-4">📸</div>
                 <p class="text-gray-300 mb-6 font-semibold">
-                    Die E-Mail wurde in deinem Mail-Programm geöffnet.
+                    Die Daten wurden gesichert. Bitte öffnen Sie jetzt Ihr Mail-Programm.
                 </p>
                 <p class="text-red-400 mb-6 text-sm">
-                    <span class="font-bold">WICHTIGER HINWEIS:</span> Bitte hänge die Fotos manuell als Anhang in der E-Mail an. Du findest sie in der Galerie deines Telefons.
+                    <span class="font-bold">WICHTIGER HINWEIS:</span> Hängen Sie die Fotos (gespeichert in Ihrer Galerie) manuell in der E-Mail an.
                 </p>
                 
-                <button id="close-hint-modal-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors">
-                    Verstanden
-                </button>
+                <!-- NEUE BUTTONS FÜR ZUVERLÄSSIGKEIT -->
+                <div id="modal-actions" class="space-y-3">
+                    <button id="open-email-btn" class="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 rounded-lg transition-colors">
+                        E-Mail jetzt öffnen & Fotos anhängen
+                    </button>
+                    <button id="close-modal-only-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors">
+                        Nur speichern (Später senden)
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -239,14 +245,17 @@
         const reportsList = document.getElementById('reports-list');
         const clearAllDataBtn = document.getElementById('clear-all-data-btn');
         const hintModal = document.getElementById('hint-modal');
-        const closeHintModalBtn = document.getElementById('close-hint-modal-btn');
+        // NEU: Verwenden Sie zwei separate Buttons
+        const openEmailBtn = document.getElementById('open-email-btn'); 
+        const closeModalOnlyBtn = document.getElementById('close-modal-only-btn');
         const deleteModal = document.getElementById('delete-modal');
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         const cancelDeleteBtn = document.getElementById('cancel-delete');
         const noReportsMessage = document.getElementById('no-reports-message');
 
         // Zustand
-        let currentPhotoBases = []; // Speichert Base64-Strings der Fotos für die aktuelle Meldung
+        let currentPhotoBases = []; // Speichert Base64-Strings der Fotos für die aktuelle Meldung (nur für Vorschau)
+        let currentMailtoLink = ''; // NEU: Speichert den generierten Link für den Button im Modal
 
         // --- HILFSFUNKTIONEN ---
 
@@ -283,7 +292,9 @@
         function generateEmailBody(report) {
             const date = new Date(report.timestamp).toLocaleString('de-DE');
             
-            let photoInfo = `Anzahl der manuell anzuhängenden Fotos: ${report.photos.length}`;
+            // Verwendet die neue Eigenschaft 'photoCount'
+            const photoCount = report.photoCount !== undefined ? report.photoCount : 0; 
+            let photoInfo = `Anzahl der manuell anzuhängenden Fotos: ${photoCount}`;
             
             const emailText = `
 SCHADENSMELDUNG TAXI-PFEIFFER
@@ -305,7 +316,7 @@ SCHADENSBESCHREIBUNG
 ${report.description}
 ----------------------------------------------
 
-BITTE DENKEN SIE DARAN, DIE ${report.photos.length} FOTOS MANUELL AN DIESE E-MAIL ANZUHÄNGEN.
+BITTE DENKEN SIE DARAN, DIE ${photoCount} FOTOS MANUELL AN DIESE E-MAIL ANZUHÄNGEN.
 Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Telefons verfügbar sein.
 `;
             return emailText.trim();
@@ -412,7 +423,9 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
                 reportElement.className = 'bg-gray-700 p-4 rounded-xl shadow-lg border-l-4 border-yellow-500 space-y-2';
 
                 const date = new Date(report.timestamp).toLocaleString('de-DE');
-                const photoText = `${report.photos.length} Foto${report.photos.length !== 1 ? 's' : ''}`;
+                // Nutze die neue Eigenschaft 'photoCount' oder fallback (für alte, große Einträge)
+                const photoCount = report.photoCount !== undefined ? report.photoCount : (report.photos ? report.photos.length : 0);
+                const photoText = `${photoCount} Foto${photoCount !== 1 ? 's' : ''}`;
                 
                 reportElement.innerHTML = `
                     <div class="flex justify-between items-center border-b border-gray-600 pb-2 mb-2">
@@ -497,38 +510,50 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
                 fahrbereit: fahrbereit,
                 description: description,
                 timestamp: now.getTime(),
-                photos: currentPhotoBases
+                // Speichere nur die Anzahl der Fotos
+                photoCount: currentPhotoBases.length
             };
 
             // 1. Lokales Speichern (dauerhaft)
             saveReportLocally(newReport);
             
-            // 2. Mailto Link generieren
-            const mailBody = generateEmailBody(newReport);
-            const subject = `Schadensmeldung ${kennzeichen} - ${fahrername}`;
-            
-            const mailtoLink = `mailto:${RECIPIENTS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}`;
-            
-            // 3. Mailto Link auslösen (öffnet E-Mail-Programm)
-            window.location.href = mailtoLink;
-            
-            // 4. Hinweisfenster anzeigen (nicht blockierend)
-            hintModal.classList.add('visible');
-            
-            // 5. Formular zurücksetzen
+            // 2. Zustand sofort zurücksetzen und UI aktualisieren
             form.reset();
-            // setze Radio Buttons zurück (falls erforderlich)
             document.querySelectorAll('input[name="verkehrstuechtig"]').forEach(radio => radio.checked = false);
             document.querySelectorAll('input[name="fahrbereit"]').forEach(radio => radio.checked = false);
-
+            fahrernameInput.value = localStorage.getItem('lastFahrername') || ''; // Name wiederherstellen
+            
             currentPhotoBases = []; // Fotos zurücksetzen
             updatePhotoPreview();
+            renderReports(); // Liste der Reports aktualisieren
+
+            // 3. Mailto Link generieren und im Zustand speichern
+            const mailBody = generateEmailBody(newReport);
+            const subject = `Schadensmeldung ${kennzeichen} - ${fahrername}`;
+            currentMailtoLink = `mailto:${RECIPIENTS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}`;
             
-            // 6. UI-Listen aktualisieren
-            renderReports();
+            // 4. Hinweisfenster anzeigen (Der Mail-Start wird nun durch einen Klick im Modal ausgelöst)
+            hintModal.classList.add('visible');
         });
 
-        closeHintModalBtn.addEventListener('click', () => {
+        // Handler für den neuen "E-Mail jetzt öffnen" Button
+        openEmailBtn.addEventListener('click', () => {
+            hintModal.classList.remove('visible');
+            if (currentMailtoLink) {
+                 try {
+                    // Startet den Mail-Client
+                    window.location.href = currentMailtoLink;
+                } catch(e) {
+                    console.error("Fehler beim Öffnen des Mailprogramms:", e);
+                    showToast("Mailprogramm konnte nicht geöffnet werden. Bitte manuell senden.");
+                }
+            } else {
+                 showToast("Fehler: E-Mail-Link fehlt. Bitte die Meldung erneut ausfüllen.");
+            }
+        });
+
+        // Handler für den neuen "Nur speichern" Button
+        closeModalOnlyBtn.addEventListener('click', () => {
             hintModal.classList.remove('visible');
         });
 
