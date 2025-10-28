@@ -60,6 +60,7 @@
             border-radius: 8px;
             border: 1px solid transparent;
             transition: all 0.2s;
+            user-select: none; /* Verhindert ungewolltes Markieren auf Mobilgeräten */
         }
         .radio-label:has(input:checked) {
             background-color: #facc1530; /* light yellow bg */
@@ -98,10 +99,10 @@
                     </select>
                 </div>
 
-                <!-- NEUES FELD: Letzter Fahrer laut Fahrtenbuch -->
+                <!-- Letzter Fahrer laut Fahrtenbuch -->
                 <div>
                     <label for="letzterFahrer" class="block text-sm font-medium text-gray-300 mb-1">Letzter Fahrer laut Fahrtenbuch</label>
-                    <input type="text" id="letzterFahrer" placeholder="Name des Fahrers"
+                    <input type="text" id="letzterFahrer" placeholder="Name des Fahrers (optional)"
                            class="w-full rounded-lg p-3 transition dark-input">
                 </div>
                 
@@ -112,17 +113,17 @@
                               class="w-full rounded-lg p-3 transition dark-input"></textarea>
                 </div>
                 
-                <!-- NEUE CHECKBOXEN (als Radio Buttons für Ja/Nein) -->
+                <!-- Radio Buttons für Status -->
                 <div class="space-y-4 pt-2">
                     <!-- Verkehrstüchtig? -->
                     <fieldset>
-                        <legend class="text-sm font-medium text-gray-300 mb-2">Ist das Fahrzeug verkehrstüchtig?</legend>
+                        <legend class="text-sm font-medium text-gray-300 mb-2">Ist das Fahrzeug verkehrstüchtig? (Pflichtfeld)</legend>
                         <div class="flex gap-4">
-                            <label for="verkehrstuechtig-ja" class="radio-label flex-1 text-center">
+                            <label for="verkehrstuechtig-ja" class="radio-label flex-1 text-center bg-gray-700 hover:bg-gray-600">
                                 <input type="radio" id="verkehrstuechtig-ja" name="verkehrstuechtig" value="Ja" class="hidden" required>
                                 <span class="w-full font-semibold">Ja</span>
                             </label>
-                            <label for="verkehrstuechtig-nein" class="radio-label flex-1 text-center">
+                            <label for="verkehrstuechtig-nein" class="radio-label flex-1 text-center bg-gray-700 hover:bg-gray-600">
                                 <input type="radio" id="verkehrstuechtig-nein" name="verkehrstuechtig" value="Nein" class="hidden">
                                 <span class="w-full font-semibold text-red-400">Nein</span>
                             </label>
@@ -131,13 +132,13 @@
 
                     <!-- Fahrbereit? -->
                     <fieldset>
-                        <legend class="text-sm font-medium text-gray-300 mb-2">Ist das Fahrzeug fahrbereit?</legend>
+                        <legend class="text-sm font-medium text-gray-300 mb-2">Ist das Fahrzeug fahrbereit? (Pflichtfeld)</legend>
                         <div class="flex gap-4">
-                            <label for="fahrbereit-ja" class="radio-label flex-1 text-center">
+                            <label for="fahrbereit-ja" class="radio-label flex-1 text-center bg-gray-700 hover:bg-gray-600">
                                 <input type="radio" id="fahrbereit-ja" name="fahrbereit" value="Ja" class="hidden" required>
                                 <span class="w-full font-semibold">Ja</span>
                             </label>
-                            <label for="fahrbereit-nein" class="radio-label flex-1 text-center">
+                            <label for="fahrbereit-nein" class="radio-label flex-1 text-center bg-gray-700 hover:bg-gray-600">
                                 <input type="radio" id="fahrbereit-nein" name="fahrbereit" value="Nein" class="hidden">
                                 <span class="w-full font-semibold text-red-400">Nein</span>
                             </label>
@@ -148,7 +149,6 @@
                 <!-- Foto-Upload-Bereich -->
                 <div class="border border-gray-700 p-4 rounded-xl space-y-3">
                     <h3 class="text-lg font-semibold text-gray-300">Fotos hinzufügen (max. 5)</h3>
-                    <!-- 'capture="camera"' priorisiert die Geräte-Kamera für die Aufnahme neuer Bilder -->
                     <input type="file" id="photo-upload" accept="image/*" capture="camera" multiple
                            class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-500/20 file:text-yellow-400 hover:file:bg-yellow-500/30">
                     
@@ -230,7 +230,7 @@
         const form = document.getElementById('damage-report-form');
         const fahrernameInput = document.getElementById('fahrername');
         const kennzeichenSelect = document.getElementById('kennzeichen');
-        const letzterFahrerInput = document.getElementById('letzterFahrer'); // NEU
+        const letzterFahrerInput = document.getElementById('letzterFahrer');
         const descriptionInput = document.getElementById('description');
         const photoUpload = document.getElementById('photo-upload');
         const photoPreview = document.getElementById('photo-preview');
@@ -328,12 +328,13 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
         }
 
         /**
-         * Zeigt eine Toast-Nachricht.
+         * Zeigt eine Toast-Nachricht (Fehlermeldungen sind nun auffälliger).
          */
         function showToast(message) {
             const toast = document.createElement('div');
             toast.textContent = message;
-            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 text-white px-4 py-2 rounded-lg shadow-xl z-50 transition duration-300 opacity-0';
+            // Verbessertes Styling für Fehlermeldungen
+            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-3 rounded-lg shadow-xl z-50 transition duration-300 opacity-0 font-bold max-w-xs text-center';
             document.body.appendChild(toast);
             
             setTimeout(() => {
@@ -342,8 +343,8 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
 
             setTimeout(() => {
                 toast.classList.remove('opacity-100');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+                setTimeout(() => toast.remove(), 400); 
+            }, 4000); // 4 Sekunden sichtbar
         }
 
         // --- RENDERFUNKTIONEN ---
@@ -474,15 +475,16 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
 
             const fahrername = fahrernameInput.value.trim();
             const kennzeichen = kennzeichenSelect.value;
-            const letzterFahrer = letzterFahrerInput.value.trim(); // NEU
+            const letzterFahrer = letzterFahrerInput.value.trim();
             const description = descriptionInput.value.trim();
             
-            // NEU: Auslesen der Radio Buttons
+            // Auslesen der Radio Buttons
             const verkehrstuechtig = document.querySelector('input[name="verkehrstuechtig"]:checked')?.value || 'Nicht ausgewählt';
             const fahrbereit = document.querySelector('input[name="fahrbereit"]:checked')?.value || 'Nicht ausgewählt';
 
+            // NEUE, explizite Validierung
             if (!fahrername || !kennzeichen || !description || verkehrstuechtig === 'Nicht ausgewählt' || fahrbereit === 'Nicht ausgewählt') {
-                showToast("Bitte füllen Sie alle Pflichtfelder aus (inkl. Fahrstatus).");
+                showToast("Fehlende Angaben: Bitte alle Pflichtfelder und den Fahrzeugstatus (Verkehrstüchtig/Fahrbereit) ausfüllen!");
                 return;
             }
 
@@ -490,9 +492,9 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
             const newReport = {
                 fahrername: fahrername,
                 kennzeichen: kennzeichen,
-                letzterFahrer: letzterFahrer, // Hinzugefügt
-                verkehrstuechtig: verkehrstuechtig, // Hinzugefügt
-                fahrbereit: fahrbereit, // Hinzugefügt
+                letzterFahrer: letzterFahrer,
+                verkehrstuechtig: verkehrstuechtig,
+                fahrbereit: fahrbereit,
                 description: description,
                 timestamp: now.getTime(),
                 photos: currentPhotoBases
@@ -515,6 +517,10 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
             
             // 5. Formular zurücksetzen
             form.reset();
+            // setze Radio Buttons zurück (falls erforderlich)
+            document.querySelectorAll('input[name="verkehrstuechtig"]').forEach(radio => radio.checked = false);
+            document.querySelectorAll('input[name="fahrbereit"]').forEach(radio => radio.checked = false);
+
             currentPhotoBases = []; // Fotos zurücksetzen
             updatePhotoPreview();
             
@@ -555,4 +561,3 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
     </script>
 </body>
 </html>
-
