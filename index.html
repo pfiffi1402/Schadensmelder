@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schadensmelde-App Pro</title>
+    <!-- Lade Tailwind CSS für das Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Verwende die Inter-Schriftart -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+        }
+        /* Definiere das Modal-Overlay */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none; 
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .modal.visible {
+            display: flex;
+        }
+        /* Custom Styling für Inputs im Dark Mode */
+        .dark-input {
+            background-color: #374151; /* gray-700 */
+            border-color: #4b5563; /* gray-600 */
+            color: #ffffff;
+        }
+        .dark-input:focus {
+            box-shadow: 0 0 0 2px #facc15; /* yellow-400 ring */
+            border-color: #facc15; /* yellow-400 */
+        }
+        /* Für die Darstellung der Kennzeichen */
+        .license-plate-style {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border: 2px solid #1f2937; 
+            border-radius: 4px;
+            background-color: #ffffff;
+            color: #000000;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-4 sm:p-6">
+
+    <!-- Haupt-Container -->
+    <div class="w-full max-w-2xl mx-auto">
+        <header class="text-center mb-6">
+            <h1 class="text-4xl font-bold text-yellow-400">Schadensmelder Pro</h1>
+            <p class="text-gray-400 mt-2">Erfassung von Fahrzeugschäden inklusive Fotos.</p>
+        </header>
+
+        <!-- Formular zum Melden eines Schadens -->
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-6 text-center text-yellow-400">Neue Meldung</h2>
+            <form id="damage-report-form" class="space-y-5">
+                
+                <!-- Fahrername -->
+                <div>
+                    <label for="fahrername" class="block text-sm font-medium text-gray-300 mb-1">Fahrername</label>
+                    <input type="text" id="fahrername" placeholder="Ihr Name" required
+                           class="w-full rounded-lg p-3 transition dark-input">
+                </div>
+                
+                <!-- Kennzeichen Dropdown -->
+                <div>
+                    <label for="kennzeichen" class="block text-sm font-medium text-gray-300 mb-1">Fahrzeug-Kennzeichen auswählen</label>
+                    <select id="kennzeichen" required
+                            class="w-full rounded-lg p-3 transition dark-input appearance-none">
+                        <option value="" disabled selected>--- Bitte auswählen ---</option>
+                        <!-- Optionen werden von JS eingefügt -->
+                    </select>
+                </div>
+                
+                <!-- Schadensbeschreibung -->
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-300 mb-1">Schadensbeschreibung / Ort</label>
+                    <textarea id="description" rows="3" placeholder="Genaue Beschreibung des Schadens und der Situation." required
+                              class="w-full rounded-lg p-3 transition dark-input"></textarea>
+                </div>
+                
+                <!-- Foto-Upload-Bereich -->
+                <div class="border border-gray-700 p-4 rounded-xl space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-300">Fotos hinzufügen (max. 5)</h3>
+                    <!-- 'capture="camera"' priorisiert die Geräte-Kamera für die Aufnahme neuer Bilder -->
+                    <input type="file" id="photo-upload" accept="image/*" capture="camera" multiple
+                           class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-500/20 file:text-yellow-400 hover:file:bg-yellow-500/30">
+                    
+                    <div id="photo-preview" class="flex flex-wrap gap-2 min-h-[50px] items-center justify-center border-t border-gray-700 pt-3">
+                        <p id="photo-placeholder" class="text-gray-500 text-sm">Noch keine Fotos ausgewählt.</p>
+                    </div>
+                    <p id="photo-count" class="text-xs text-gray-400 text-right">0 von 5 Fotos</p>
+                </div>
+                
+                <button type="submit" id="submit-button"
+                        class="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 rounded-lg shadow-md text-lg transition-all duration-200 hover:shadow-xl disabled:opacity-50">
+                    Meldung Senden & Speichern
+                </button>
+            </form>
+        </div>
+
+        <!-- Gespeicherte Meldungen -->
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg mb-8">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-3">
+                <h2 class="text-2xl font-semibold">Gespeicherte Meldungen</h2>
+                <button id="clear-all-data-btn" 
+                        class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">
+                    Alle Daten löschen
+                </button>
+            </div>
+            
+            <div id="reports-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                <p id="no-reports-message" class="text-gray-400 text-center py-4">Keine Schäden im lokalen Speicher vorhanden.</p>
+            </div>
+        </div>
+
+        <!-- Modal für Hinweis zum Foto-Anhang -->
+        <div id="hint-modal" class="modal p-4">
+            <div class="bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center">
+                <h3 class="text-xl font-bold mb-4 text-yellow-400">Meldung erfolgreich gespeichert!</h3>
+                <div class="text-5xl mb-4">📸</div>
+                <p class="text-gray-300 mb-6 font-semibold">
+                    Die E-Mail wurde in deinem Mail-Programm geöffnet.
+                </p>
+                <p class="text-red-400 mb-6 text-sm">
+                    <span class="font-bold">WICHTIGER HINWEIS:</span> Bitte hänge die Fotos manuell als Anhang in der E-Mail an. Du findest sie in der Galerie deines Telefons.
+                </p>
+                
+                <button id="close-hint-modal-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors">
+                    Verstanden
+                </button>
+            </div>
+        </div>
+        
+        <!-- Modal für Löschbestätigung -->
+        <div id="delete-modal" class="modal p-4">
+             <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
+                <h3 class="text-xl font-bold mb-4 text-red-500">Achtung: Alle Daten löschen</h3>
+                <p class="text-gray-400 mb-6">Möchten Sie wirklich alle lokal gespeicherten Schadensmeldungen unwiderruflich löschen?</p>
+                <div class="flex justify-center gap-4">
+                    <button id="confirm-delete" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">Ja, löschen</button>
+                    <button id="cancel-delete" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">Abbrechen</button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Script Block -->
+    <script>
+        // Definition der benötigten globalen Variablen (MANDATORY, auch wenn nicht verwendet)
+        const __app_id = '';
+        const __firebase_config = '{}';
+        const __initial_auth_token = '';
+
+        // Konstanten
+        const REPORTS_KEY = 'schadensmeldungen';
+        const MAX_PHOTOS = 5;
+        // FINALISIERTE LISTE DER KENNZEICHEN
+        const KENNZEICHEN = ["WR-TP 11", "WR-TP 60", "WR-TP 75", "WR-TP 100", "WR-TP 103", "WR-TP 104", "WR-TP 105", "WR-TP 106", "WR-TP 111", "WR-TP 112", "WR-TP 119", "WR-TP 316", "WR-TP 444", "WR-TP 557", "WR-TP 667"]; 
+        const RECIPIENTS = "marco.pfeiffer@taxi-pfeiffer-blankenburg.de,michaela.lueders@taxi-pfeiffer-blankenburg.de";
+
+        // DOM-Elemente
+        const form = document.getElementById('damage-report-form');
+        const fahrernameInput = document.getElementById('fahrername');
+        const kennzeichenSelect = document.getElementById('kennzeichen');
+        const descriptionInput = document.getElementById('description');
+        const photoUpload = document.getElementById('photo-upload');
+        const photoPreview = document.getElementById('photo-preview');
+        const photoCountDisplay = document.getElementById('photo-count');
+        const photoPlaceholder = document.getElementById('photo-placeholder');
+        const reportsList = document.getElementById('reports-list');
+        const clearAllDataBtn = document.getElementById('clear-all-data-btn');
+        const hintModal = document.getElementById('hint-modal');
+        const closeHintModalBtn = document.getElementById('close-hint-modal-btn');
+        const deleteModal = document.getElementById('delete-modal');
+        const confirmDeleteBtn = document.getElementById('confirm-delete');
+        const cancelDeleteBtn = document.getElementById('cancel-delete');
+        const noReportsMessage = document.getElementById('no-reports-message');
+
+        // Zustand
+        let currentPhotoBases = []; // Speichert Base64-Strings der Fotos für die aktuelle Meldung
+
+        // --- HILFSFUNKTIONEN ---
+
+        /**
+         * Erstellt die Kennzeichen-Optionen im Dropdown.
+         */
+        function initializeKennzeichen() {
+            // Speichert den letzten Fahrernamen im Local Storage
+            fahrernameInput.value = localStorage.getItem('lastFahrername') || '';
+
+            KENNZEICHEN.forEach(kz => {
+                const option = document.createElement('option');
+                option.value = kz;
+                option.textContent = kz;
+                kennzeichenSelect.appendChild(option);
+            });
+        }
+        
+        /**
+         * Konvertiert eine Datei (Bild) in einen Base64-String.
+         */
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        /**
+         * Erzeugt den strukturierten E-Mail-Text.
+         */
+        function generateEmailBody(report) {
+            const date = new Date(report.timestamp).toLocaleString('de-DE');
+            
+            let photoInfo = `Anzahl der manuell anzuhängenden Fotos: ${report.photos.length}`;
+            
+            const emailText = `
+SCHADENSMELDUNG TAXI-PFEIFFER
+
+==============================================
+ZUSAMMENFASSUNG
+==============================================
+Fahrer: ${report.fahrername}
+Kennzeichen: ${report.kennzeichen}
+Zeitpunkt der Meldung: ${date}
+${photoInfo}
+==============================================
+
+SCHADENSBESCHREIBUNG
+----------------------------------------------
+${report.description}
+----------------------------------------------
+
+BITTE DENKEN SIE DARAN, DIE ${report.photos.length} FOTOS MANUELL AN DIESE E-MAIL ANZUHÄNGEN.
+Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Telefons verfügbar sein.
+`;
+            return emailText.trim();
+        }
+
+        /**
+         * Speichert einen Report im lokalen Speicher.
+         */
+        function saveReportLocally(report) {
+            const reports = JSON.parse(localStorage.getItem(REPORTS_KEY) || '[]');
+            reports.push(report);
+            localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
+        }
+
+        /**
+         * Lädt alle Reports aus dem lokalen Speicher.
+         */
+        function loadReports() {
+            return JSON.parse(localStorage.getItem(REPORTS_KEY) || '[]');
+        }
+
+        /**
+         * Zeigt eine Toast-Nachricht.
+         */
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 text-white px-4 py-2 rounded-lg shadow-xl z-50 transition duration-300 opacity-0';
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-100');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- RENDERFUNKTIONEN ---
+
+        /**
+         * Aktualisiert die Fotovorschau und die Zählung.
+         */
+        function updatePhotoPreview() {
+            photoPreview.innerHTML = '';
+            photoCountDisplay.textContent = `${currentPhotoBases.length} von ${MAX_PHOTOS} Fotos`;
+            photoUpload.disabled = currentPhotoBases.length >= MAX_PHOTOS;
+            
+            if (currentPhotoBases.length === 0) {
+                 photoPlaceholder.classList.remove('hidden');
+                 photoPreview.appendChild(photoPlaceholder);
+                 return;
+            }
+            photoPlaceholder.classList.add('hidden');
+
+            currentPhotoBases.forEach((base64, index) => {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'relative w-16 h-16 rounded-lg overflow-hidden border-2 border-yellow-400 group cursor-pointer';
+
+                const img = document.createElement('img');
+                img.src = base64;
+                img.className = 'w-full h-full object-cover';
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'absolute inset-0 bg-red-600/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold';
+                deleteButton.textContent = 'X';
+                deleteButton.onclick = (e) => {
+                    e.preventDefault();
+                    currentPhotoBases.splice(index, 1);
+                    updatePhotoPreview();
+                };
+
+                imgContainer.appendChild(img);
+                imgContainer.appendChild(deleteButton);
+                photoPreview.appendChild(imgContainer);
+            });
+        }
+
+        /**
+         * Rendert die Liste der gespeicherten Reports.
+         */
+        function renderReports() {
+            const reports = loadReports();
+            reportsList.innerHTML = '';
+
+            if (reports.length === 0) {
+                noReportsMessage.classList.remove('hidden');
+                reportsList.appendChild(noReportsMessage);
+                clearAllDataBtn.disabled = true;
+                return;
+            }
+            
+            noReportsMessage.classList.add('hidden');
+            clearAllDataBtn.disabled = false;
+
+            // Sortiere nach Zeitstempel (neueste zuerst)
+            reports.sort((a, b) => b.timestamp - a.timestamp);
+
+            reports.forEach(report => {
+                const reportElement = document.createElement('div');
+                reportElement.className = 'bg-gray-700 p-4 rounded-xl shadow-lg border-l-4 border-yellow-500 space-y-2';
+
+                const date = new Date(report.timestamp).toLocaleString('de-DE');
+                const photoText = `${report.photos.length} Foto${report.photos.length !== 1 ? 's' : ''}`;
+                
+                reportElement.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-gray-600 pb-2 mb-2">
+                        <span class="text-lg font-bold text-white">${report.fahrername}</span>
+                        <span class="license-plate-style">${report.kennzeichen}</span>
+                    </div>
+                    <p class="text-sm text-gray-300">
+                        <span class="font-semibold text-yellow-400">Zeitpunkt:</span> ${date}
+                    </p>
+                    <p class="text-sm text-gray-300">
+                         <span class="font-semibold text-yellow-400">Fotos:</span> ${photoText}
+                    </p>
+                    <p class="text-gray-400 text-sm whitespace-pre-wrap mt-2">
+                        ${report.description.length > 150 ? report.description.substring(0, 150) + '...' : report.description}
+                    </p>
+                `;
+
+                reportsList.appendChild(reportElement);
+            });
+        }
+
+        // --- EVENT HANDLER ---
+
+        // Fahrername im Local Storage speichern
+        fahrernameInput.addEventListener('input', () => {
+            localStorage.setItem('lastFahrername', fahrernameInput.value);
+        });
+
+        /**
+         * Verarbeitet das Hochladen von Fotos.
+         */
+        photoUpload.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            
+            // Füge nur die Dateien hinzu, bis das Limit erreicht ist
+            for (let i = 0; i < files.length && currentPhotoBases.length < MAX_PHOTOS; i++) {
+                try {
+                    const base64 = await fileToBase64(files[i]);
+                    currentPhotoBases.push(base64);
+                } catch (error) {
+                    console.error("Fehler beim Konvertieren des Fotos:", error);
+                }
+            }
+            
+            // Setze den Input zurück, damit "change" beim nächsten Mal wieder ausgelöst wird
+            e.target.value = '';
+            
+            updatePhotoPreview();
+        });
+
+
+        /**
+         * Formular-Submit: Speichern und Mailto Link auslösen.
+         */
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fahrername = fahrernameInput.value.trim();
+            const kennzeichen = kennzeichenSelect.value;
+            const description = descriptionInput.value.trim();
+
+            if (!fahrername || !kennzeichen || !description) {
+                showToast("Bitte füllen Sie alle Pflichtfelder aus.");
+                return;
+            }
+
+            const now = new Date();
+            const newReport = {
+                fahrername: fahrername,
+                kennzeichen: kennzeichen,
+                description: description,
+                timestamp: now.getTime(), // Unix-Timestamp für Sortierung/Speicherung
+                photos: currentPhotoBases // Base64-Strings der Fotos (für lokale Speicherung)
+            };
+
+            // 1. Lokales Speichern (dauerhaft)
+            saveReportLocally(newReport);
+            
+            // 2. Mailto Link generieren
+            const mailBody = generateEmailBody(newReport);
+            const subject = `Schadensmeldung ${kennzeichen} - ${fahrername}`;
+            
+            const mailtoLink = `mailto:${RECIPIENTS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}`;
+            
+            // 3. Mailto Link auslösen (öffnet E-Mail-Programm)
+            // Wichtig: Dies muss vor dem Modal passieren, um nicht durch das Modal blockiert zu werden
+            window.location.href = mailtoLink;
+            
+            // 4. Hinweisfenster anzeigen (nicht blockierend)
+            hintModal.classList.add('visible');
+            
+            // 5. Formular zurücksetzen
+            // Wichtig: Die Fotos bleiben in der Galerie, aber wir löschen sie aus der App-Zwischenspeicherung.
+            form.reset();
+            currentPhotoBases = []; // Fotos zurücksetzen
+            updatePhotoPreview();
+            
+            // 6. UI-Listen aktualisieren
+            renderReports();
+        });
+
+        closeHintModalBtn.addEventListener('click', () => {
+            hintModal.classList.remove('visible');
+        });
+
+
+        // --- LÖSCHEN LOGIK ---
+        
+        /**
+         * Event Listener für den "Alle Daten löschen" Button.
+         */
+        clearAllDataBtn.addEventListener('click', () => {
+            deleteModal.classList.add('visible');
+        });
+
+        cancelDeleteBtn.addEventListener('click', () => {
+            deleteModal.classList.remove('visible');
+        });
+
+        confirmDeleteBtn.addEventListener('click', () => {
+            localStorage.removeItem(REPORTS_KEY); // Alle gespeicherten Daten löschen
+            renderReports();
+            deleteModal.classList.remove('visible');
+            showToast('Alle Schadensmeldungen wurden gelöscht!');
+        });
+
+        // --- INITIALISIERUNG ---
+        initializeKennzeichen();
+        renderReports();
+        updatePhotoPreview(); // Setzt den initialen Status der Fotoanzeige
+        
+    </script>
+</body>
+</html>
+
