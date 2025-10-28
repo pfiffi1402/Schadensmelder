@@ -19,11 +19,13 @@
         .modal {
             position: fixed;
             inset: 0;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.9);
             display: none; 
             align-items: center;
             justify-content: center;
             z-index: 50;
+            overflow-y: auto; /* Erlaube Scrollen für den Inhalt */
+            padding: 1rem;
         }
         .modal.visible {
             display: flex;
@@ -60,11 +62,20 @@
             border-radius: 8px;
             border: 1px solid transparent;
             transition: all 0.2s;
-            user-select: none; /* Verhindert ungewolltes Markieren auf Mobilgeräten */
+            user-select: none; 
         }
         .radio-label:has(input:checked) {
-            background-color: #facc1530; /* light yellow bg */
-            border-color: #facc15; /* yellow-400 */
+            background-color: #facc1530; 
+            border-color: #facc15; 
+        }
+        /* Für die Bilder in der Detailansicht */
+        .detail-photo {
+            width: 100%;
+            height: auto;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer; /* Wichtig für Long-Press-Speichern */
         }
     </style>
 </head>
@@ -149,6 +160,7 @@
                 <!-- Foto-Upload-Bereich -->
                 <div class="border border-gray-700 p-4 rounded-xl space-y-3">
                     <h3 class="text-lg font-semibold text-gray-300">Fotos hinzufügen (max. 5)</h3>
+                    <!-- Der Capture-Befehl löst die Kamera aus und speichert im Browser-Speicher (oft auch Galerie) -->
                     <input type="file" id="photo-upload" accept="image/*" capture="camera" multiple
                            class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-500/20 file:text-yellow-400 hover:file:bg-yellow-500/30">
                     
@@ -168,7 +180,7 @@
         <!-- Gespeicherte Meldungen -->
         <div class="bg-gray-800 p-6 rounded-2xl shadow-lg mb-8">
             <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-3">
-                <h2 class="text-2xl font-semibold">Gespeicherte Meldungen</h2>
+                <h2 class="text-2xl font-semibold">Gespeicherte Meldungen (zum Ansehen/Senden tippen)</h2>
                 <button id="clear-all-data-btn" 
                         class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm">
                     Alle Daten löschen
@@ -180,7 +192,7 @@
             </div>
         </div>
 
-        <!-- Modal für Hinweis zum Foto-Anhang -->
+        <!-- Modal für Hinweis zum Foto-Anhang (Nach dem Speichern) -->
         <div id="hint-modal" class="modal p-4">
             <div class="bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center">
                 <h3 class="text-xl font-bold mb-4 text-yellow-400">Meldung erfolgreich gespeichert!</h3>
@@ -189,7 +201,7 @@
                     Die Daten wurden gesichert. Bitte öffnen Sie jetzt Ihr Mail-Programm.
                 </p>
                 <p class="text-red-400 mb-6 text-sm">
-                    <span class="font-bold">WICHTIGER HINWEIS:</span> Hängen Sie die Fotos (gespeichert in Ihrer Galerie) manuell in der E-Mail an.
+                    <span class="font-bold">WICHTIGER HINWEIS:</span> Hängen Sie die Fotos (gespeichert in Ihrer Galerie) manuell in der E-Mail an. **Falls Sie die Fotos dort nicht finden, tippen Sie auf die Meldung in der Liste, um sie in der App zu sichern.**
                 </p>
                 
                 <!-- NEUE BUTTONS FÜR ZUVERLÄSSIGKEIT -->
@@ -212,6 +224,33 @@
                 <div class="flex justify-center gap-4">
                     <button id="confirm-delete" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">Ja, löschen</button>
                     <button id="cancel-delete" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">Abbrechen</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEUES MODAL FÜR DETAILANSICHT UND FOTOSICHERUNG -->
+        <div id="report-detail-modal" class="modal">
+            <div class="bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-lg w-full">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-2xl font-bold text-yellow-400">Meldungsdetails</h3>
+                    <button id="close-detail-modal" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+                </div>
+
+                <div id="report-detail-content" class="space-y-4 mb-6 text-gray-300 text-sm max-h-[70vh] overflow-y-auto pr-2">
+                    <!-- Inhalt wird von JS eingefügt -->
+                </div>
+                
+                <p id="photo-save-hint" class="text-sm text-red-400 bg-gray-700 p-3 rounded-lg mt-4 font-semibold">
+                    ❗ **FOTOS NICHT GEFUNDEN?** Halten Sie Ihren Finger auf ein Bild (Long-Press) und wählen Sie "Speichern/Download", um es in die Galerie zu zwingen.
+                </p>
+
+                <div class="space-y-3 mt-6">
+                     <a id="detail-open-email-btn" href="#" target="_blank" class="w-full block text-center bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 rounded-lg transition-colors">
+                        E-Mail jetzt öffnen & Fotos anhängen
+                    </a>
+                    <button id="delete-single-report-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg transition-colors">
+                        Diese Meldung löschen
+                    </button>
                 </div>
             </div>
         </div>
@@ -245,17 +284,25 @@
         const reportsList = document.getElementById('reports-list');
         const clearAllDataBtn = document.getElementById('clear-all-data-btn');
         const hintModal = document.getElementById('hint-modal');
-        // NEU: Verwenden Sie zwei separate Buttons
         const openEmailBtn = document.getElementById('open-email-btn'); 
         const closeModalOnlyBtn = document.getElementById('close-modal-only-btn');
         const deleteModal = document.getElementById('delete-modal');
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         const cancelDeleteBtn = document.getElementById('cancel-delete');
         const noReportsMessage = document.getElementById('no-reports-message');
+        
+        // NEUE DETAIL MODAL ELEMENTE
+        const reportDetailModal = document.getElementById('report-detail-modal');
+        const closeDetailModalBtn = document.getElementById('close-detail-modal');
+        const reportDetailContent = document.getElementById('report-detail-content');
+        const detailOpenEmailBtn = document.getElementById('detail-open-email-btn');
+        const deleteSingleReportBtn = document.getElementById('delete-single-report-btn');
+
 
         // Zustand
-        let currentPhotoBases = []; // Speichert Base64-Strings der Fotos für die aktuelle Meldung (nur für Vorschau)
-        let currentMailtoLink = ''; // NEU: Speichert den generierten Link für den Button im Modal
+        let currentPhotoBases = []; // Speichert Base64-Strings der Fotos für die aktuelle Meldung
+        let currentMailtoLink = ''; // Speichert den generierten Link für den Button im Modal
+        let activeReportId = null; // Speichert die ID (timestamp) des gerade angezeigten Reports
 
         // --- HILFSFUNKTIONEN ---
 
@@ -263,7 +310,6 @@
          * Erstellt die Kennzeichen-Optionen im Dropdown.
          */
         function initializeKennzeichen() {
-            // Speichert den letzten Fahrernamen im Local Storage
             fahrernameInput.value = localStorage.getItem('lastFahrername') || '';
 
             KENNZEICHEN.forEach(kz => {
@@ -292,7 +338,6 @@
         function generateEmailBody(report) {
             const date = new Date(report.timestamp).toLocaleString('de-DE');
             
-            // Verwendet die neue Eigenschaft 'photoCount'
             const photoCount = report.photoCount !== undefined ? report.photoCount : 0; 
             let photoInfo = `Anzahl der manuell anzuhängenden Fotos: ${photoCount}`;
             
@@ -317,18 +362,32 @@ ${report.description}
 ----------------------------------------------
 
 BITTE DENKEN SIE DARAN, DIE ${photoCount} FOTOS MANUELL AN DIESE E-MAIL ANZUHÄNGEN.
-Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Telefons verfügbar sein.
+Die Fotos sind in der Galerie Ihres Telefons gespeichert. Falls nicht, tippen Sie in der App auf die Meldung in der Liste, um die Bilder dort zu sichern.
 `;
             return emailText.trim();
         }
 
         /**
-         * Speichert einen Report im lokalen Speicher.
+         * Speichert einen Report im lokalen Speicher (inkl. Base64 Fotos).
          */
         function saveReportLocally(report) {
-            const reports = JSON.parse(localStorage.getItem(REPORTS_KEY) || '[]');
+            const reports = loadReports();
             reports.push(report);
             localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
+        }
+
+        /**
+         * Löscht einen einzelnen Report basierend auf dem Timestamp.
+         */
+        function deleteSingleReport(timestamp) {
+            let reports = loadReports();
+            const initialLength = reports.length;
+            reports = reports.filter(r => r.timestamp !== timestamp);
+            if (reports.length < initialLength) {
+                localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
+                return true;
+            }
+            return false;
         }
 
         /**
@@ -339,13 +398,12 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
         }
 
         /**
-         * Zeigt eine Toast-Nachricht (Fehlermeldungen sind nun auffälliger).
+         * Zeigt eine Toast-Nachricht.
          */
-        function showToast(message) {
+        function showToast(message, isError = false) {
             const toast = document.createElement('div');
             toast.textContent = message;
-            // Verbessertes Styling für Fehlermeldungen
-            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-3 rounded-lg shadow-xl z-50 transition duration-300 opacity-0 font-bold max-w-xs text-center';
+            toast.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 ${isError ? 'bg-red-600' : 'bg-green-600'} text-white px-4 py-3 rounded-lg shadow-xl z-50 transition duration-300 opacity-0 font-bold max-w-xs text-center`;
             document.body.appendChild(toast);
             
             setTimeout(() => {
@@ -355,7 +413,7 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
             setTimeout(() => {
                 toast.classList.remove('opacity-100');
                 setTimeout(() => toast.remove(), 400); 
-            }, 4000); // 4 Sekunden sichtbar
+            }, 4000); 
         }
 
         // --- RENDERFUNKTIONEN ---
@@ -420,10 +478,13 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
 
             reports.forEach(report => {
                 const reportElement = document.createElement('div');
-                reportElement.className = 'bg-gray-700 p-4 rounded-xl shadow-lg border-l-4 border-yellow-500 space-y-2';
+                reportElement.className = 'bg-gray-700 p-4 rounded-xl shadow-lg border-l-4 border-yellow-500 space-y-2 cursor-pointer hover:bg-gray-600 transition-colors';
+                reportElement.dataset.timestamp = report.timestamp; // Speichert den Timestamp für die Detailansicht
+                
+                // Click-Handler hinzufügen
+                reportElement.addEventListener('click', () => showReportDetail(report));
 
                 const date = new Date(report.timestamp).toLocaleString('de-DE');
-                // Nutze die neue Eigenschaft 'photoCount' oder fallback (für alte, große Einträge)
                 const photoCount = report.photoCount !== undefined ? report.photoCount : (report.photos ? report.photos.length : 0);
                 const photoText = `${photoCount} Foto${photoCount !== 1 ? 's' : ''}`;
                 
@@ -434,8 +495,10 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
                     </div>
                     <div class="text-sm text-gray-300 grid grid-cols-2 gap-y-1">
                         <span class="font-semibold text-yellow-400">Letzter Fahrer:</span> <span>${report.letzterFahrer || 'Nicht angegeben'}</span>
-                        <span class="font-semibold text-yellow-400">Verkehrstüchtig:</span> <span class="${report.verkehrstuechtig === 'Nein' ? 'text-red-400' : 'text-green-400'}">${report.verkehrstuechtig}</span>
-                        <span class="font-semibold text-yellow-400">Fahrbereit:</span> <span class="${report.fahrbereit === 'Nein' ? 'text-red-400' : 'text-green-400'}">${report.fahrbereit}</span>
+                        <span class="font-semibold text-yellow-400">Status:</span> 
+                        <span class="${report.verkehrstuechtig === 'Nein' || report.fahrbereit === 'Nein' ? 'text-red-400' : 'text-green-400'}">
+                            Tüchtig: ${report.verkehrstuechtig}, Fahrbereit: ${report.fahrbereit}
+                        </span>
                         <span class="font-semibold text-yellow-400">Zeitpunkt:</span> <span>${date}</span>
                     </div>
                     <p class="text-sm text-gray-300 pt-2">
@@ -448,6 +511,66 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
 
                 reportsList.appendChild(reportElement);
             });
+        }
+        
+        /**
+         * Zeigt die Detailansicht des Reports, inklusive Base64-Fotos.
+         */
+        function showReportDetail(report) {
+            activeReportId = report.timestamp;
+
+            const date = new Date(report.timestamp).toLocaleString('de-DE');
+            const mailBody = generateEmailBody(report);
+            const subject = `Schadensmeldung ${report.kennzeichen} - ${report.fahrername}`;
+            const mailtoLink = `mailto:${RECIPIENTS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}`;
+
+            // Setze den Mailto Link für den Button im Modal
+            detailOpenEmailBtn.href = mailtoLink;
+            
+            // Setze den Lösch-Handler
+            deleteSingleReportBtn.onclick = () => {
+                // Bestätigung für das Löschen hier überspringen, da es ein Detail-Button ist.
+                if(deleteSingleReport(report.timestamp)) {
+                    reportDetailModal.classList.remove('visible');
+                    renderReports();
+                    showToast("Meldung gelöscht!", false);
+                } else {
+                    showToast("Fehler beim Löschen der Meldung.", true);
+                }
+            };
+            
+            // Details HTML generieren
+            let detailHtml = `
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-base">
+                    <span class="font-bold text-yellow-400">Kennzeichen:</span> <span class="license-plate-style">${report.kennzeichen}</span>
+                    <span class="font-bold text-yellow-400">Fahrer (Aktuell):</span> <span>${report.fahrername}</span>
+                    <span class="font-bold text-yellow-400">Letzter Fahrer (Buch):</span> <span>${report.letzterFahrer || 'Nicht angegeben'}</span>
+                    <span class="font-bold text-yellow-400">Zeitpunkt:</span> <span>${date}</span>
+                </div>
+                <div class="mt-4 p-3 bg-gray-700 rounded-lg">
+                    <span class="font-bold text-yellow-400 block mb-1">Status:</span>
+                    <span class="${report.verkehrstuechtig === 'Nein' ? 'text-red-400' : 'text-green-400'}">Verkehrstüchtig: ${report.verkehrstuechtig}</span><br>
+                    <span class="${report.fahrbereit === 'Nein' ? 'text-red-400' : 'text-green-400'}">Fahrbereit: ${report.fahrbereit}</span>
+                </div>
+                <div class="mt-4 p-3 bg-gray-700 rounded-lg">
+                    <span class="font-bold text-yellow-400 block mb-1">Schadensbeschreibung:</span>
+                    <p class="whitespace-pre-wrap">${report.description}</p>
+                </div>
+                <h4 class="font-bold text-xl text-yellow-400 mt-6 mb-3">Gespeicherte Fotos (${report.photoCount}):</h4>
+            `;
+
+            if (report.photos && report.photos.length > 0) {
+                detailHtml += '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3">';
+                report.photos.forEach((base64, index) => {
+                    detailHtml += `<img src="${base64}" alt="Schadensfoto ${index + 1}" class="detail-photo shadow-lg">`;
+                });
+                detailHtml += '</div>';
+            } else {
+                detailHtml += '<p class="text-gray-400">Keine Fotos mit dieser Meldung gespeichert.</p>';
+            }
+
+            reportDetailContent.innerHTML = detailHtml;
+            reportDetailModal.classList.add('visible');
         }
 
         // --- EVENT HANDLER ---
@@ -497,7 +620,7 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
 
             // NEUE, explizite Validierung
             if (!fahrername || !kennzeichen || !description || verkehrstuechtig === 'Nicht ausgewählt' || fahrbereit === 'Nicht ausgewählt') {
-                showToast("Fehlende Angaben: Bitte alle Pflichtfelder und den Fahrzeugstatus (Verkehrstüchtig/Fahrbereit) ausfüllen!");
+                showToast("Fehlende Angaben: Bitte alle Pflichtfelder und den Fahrzeugstatus (Verkehrstüchtig/Fahrbereit) ausfüllen!", true);
                 return;
             }
 
@@ -510,7 +633,8 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
                 fahrbereit: fahrbereit,
                 description: description,
                 timestamp: now.getTime(),
-                // Speichere nur die Anzahl der Fotos
+                // WICHTIGE ÄNDERUNG: Speichere nun die Base64 Fotos direkt mit
+                photos: currentPhotoBases, 
                 photoCount: currentPhotoBases.length
             };
 
@@ -536,33 +660,34 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
             hintModal.classList.add('visible');
         });
 
-        // Handler für den neuen "E-Mail jetzt öffnen" Button
+        // Handler für "E-Mail jetzt öffnen" Button (Initiales Modal)
         openEmailBtn.addEventListener('click', () => {
             hintModal.classList.remove('visible');
             if (currentMailtoLink) {
                  try {
-                    // Startet den Mail-Client
                     window.location.href = currentMailtoLink;
                 } catch(e) {
                     console.error("Fehler beim Öffnen des Mailprogramms:", e);
-                    showToast("Mailprogramm konnte nicht geöffnet werden. Bitte manuell senden.");
+                    showToast("Mailprogramm konnte nicht geöffnet werden. Bitte manuell senden.", true);
                 }
             } else {
-                 showToast("Fehler: E-Mail-Link fehlt. Bitte die Meldung erneut ausfüllen.");
+                 showToast("Fehler: E-Mail-Link fehlt. Bitte die Meldung erneut ausfüllen.", true);
             }
         });
 
-        // Handler für den neuen "Nur speichern" Button
+        // Handler für "Nur speichern" Button (Initiales Modal)
         closeModalOnlyBtn.addEventListener('click', () => {
             hintModal.classList.remove('visible');
         });
-
-
-        // --- LÖSCHEN LOGIK ---
         
-        /**
-         * Event Listener für den "Alle Daten löschen" Button.
-         */
+        // Handler für "Detailansicht schließen" Button
+        closeDetailModalBtn.addEventListener('click', () => {
+            reportDetailModal.classList.remove('visible');
+        });
+
+
+        // --- LÖSCHEN LOGIK (ALLE DATEN) ---
+        
         clearAllDataBtn.addEventListener('click', () => {
             deleteModal.classList.add('visible');
         });
@@ -572,7 +697,7 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
         });
 
         confirmDeleteBtn.addEventListener('click', () => {
-            localStorage.removeItem(REPORTS_KEY); // Alle gespeicherten Daten löschen
+            localStorage.removeItem(REPORTS_KEY); 
             renderReports();
             deleteModal.classList.remove('visible');
             showToast('Alle Schadensmeldungen wurden gelöscht!');
@@ -581,7 +706,7 @@ Die Fotos wurden über die App aufgenommen und sollten in der Galerie Ihres Tele
         // --- INITIALISIERUNG ---
         initializeKennzeichen();
         renderReports();
-        updatePhotoPreview(); // Setzt den initialen Status der Fotoanzeige
+        updatePhotoPreview(); 
         
     </script>
 </body>
